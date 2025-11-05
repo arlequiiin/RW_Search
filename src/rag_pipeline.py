@@ -1,0 +1,183 @@
+"""
+RAG Pipeline - основная логика Retrieval-Augmented Generation
+"""
+from typing import List, Dict, Tuple
+from src.embeddings import EmbeddingModel
+from src.storage import get_chroma
+from src.llm_client import get_llm_client
+from src.config import TOP_K, EMBEDDING_MODEL_NAME
+from src.hybrid_search import HybridSearcher
+
+
+class RAGPipeline:
+    """
+    Полный пайплайн RAG: поиск релевантных документов + генерация ответа
+    """
+
+    def __init__(
+        self,
+        embedding_model_name: str = EMBEDDING_MODEL_NAME,
+        top_k: int = TOP_K
+    ):
+        """
+        Инициализация RAG пайплайна
+
+        Args:
+            embedding_model_name: Имя модели для эмбеддингов
+            top_k: Количество документов для поиска
+        """
+        print("Инициализация RAG pipeline...")
+        self.embedding_model = EmbeddingModel(embedding_model_name)
+        self.client, self.collection = get_chroma()
+        self.llm_client = get_llm_client()
+        self.top_k = top_k
+        print("✅ RAG pipeline готов")
+
+    def search_similar(
+        self,
+        query: str,
+        top_k: int = None,
+        filter_active: bool = True
+    ) -> List[Dict]:
+        """
+        Поиск похожих документов в векторной базе
+
+        Args:
+            query: Поисковый запрос
+            top_k: Количество результатов (если None, используется self.top_k)
+            filter_active: Фильтровать только активные документы
+
+        Returns:
+            Список найденных документов с метаданными и скорами
+        """
+        if top_k is None:
+            top_k = self.top_k
+
+        # Создаём эмбеддинг запроса
+        query_embedding = self.embedding_model.encode([query])[0].tolist()
+
+        # Подготовка фильтра
+        where_filter = {"active": True} if filter_active else None
+
+        # Поиск в ChromaDB
+        results = self.collection.query(
+            query_embeddings=[query_embedding],
+            n_results=top_k,
+            where=where_filter if where_filter else {}
+        )
+
+        # Форматирование результатов
+        documents = []
+        if results['documents'] and len(results['documents']) > 0:
+            for i in range(len(results['documents'][0])):
+                doc = {
+                    'text': results['documents'][0][i],
+                    'metadata': results['metadatas'][0][i] if results['metadatas'] else {},
+                    'distance': results['distances'][0][i] if results['distances'] else None,
+                    'id': results['ids'][0][i] if results['ids'] else None
+                }
+                documents.append(doc)
+
+        return documents
+
+    def format_context(self, documents: List[Dict]) -> Tuple[str, List[Dict]]:
+        """
+        Форматирование найденных документов в контекст для LLM
+
+        Args:
+            documents: Список документов из поиска
+
+        Returns:
+            Tuple (отформатированный контекст, источники)
+        """
+        if not documents:
+            return "Контекст отсутствует.", []
+
+        context_parts = []
+        sources = []
+
+        for i, doc in enumerate(documents, 1):
+            text = doc['text']
+            metadata = doc.get('metadata', {})
+
+            # Формируем источник
+            source_info = {
+                'index': i,
+                'filename': metadata.get('filename', 'Неизвестный документ'),
+                'doc_id': metadata.get('doc_id', ''),
+                'distance': doc.get('distance', 0.0)
+            }
+            sources.append(source_info)
+
+            # Формируем контекст
+            context_part = f"""[Документ {i}: {source_info['filename']}]
+{text}
+"""
+            context_parts.append(context_part)
+
+        context = "\n---\n".join(context_parts)
+        return context, sources
+
+    def query(self, user_query: str, top_k: int = None) -> Dict:
+        """
+        Основной метод для выполнения RAG запроса
+
+        Args:
+            user_query: Вопрос пользователя
+            top_k: Количество документов для поиска
+
+        Returns:
+            Словарь с ответом, контекстом и источниками
+        """
+        print(f"\n🔍 Поиск по запросу: {user_query}")
+
+        # 1. Поиск похожих документов
+        documents = self.search_similar(user_query, top_k=top_k)
+
+        if not documents:
+            return {
+                'answer': "К сожалению, в базе знаний не найдено релевантной информации по вашему запросу.",
+                'context': "",
+                'sources': [],
+                'documents': []
+            }
+
+        print(f"✅ Найдено документов: {len(documents)}")
+
+        # 2. Форматирование контекста
+        context, sources = self.format_context(documents)
+
+        # 3. Генерация ответа с помощью LLM
+        print("🤖 Генерация ответа...")
+        answer = self.llm_client.generate_rag_answer(
+            query=user_query,
+            context=context
+        )
+
+        print("✅ Ответ готов")
+
+        return {
+            'answer': answer,
+            'context': context,
+            'sources': sources,
+            'documents': documents
+        }
+
+    def get_stats(self) -> Dict:
+        """
+        Получение статистики базы знаний
+
+        Returns:
+            Словарь со статистикой
+        """
+        count = self.collection.count()
+        return {
+            'total_chunks': count,
+            'collection_name': self.collection.name
+        }
+
+
+# Удобная функция для создания пайплайна
+def create_rag_pipeline() -> RAGPipeline:
+    """Создание и возврат RAG пайплайна"""
+    return RAGPipeline()

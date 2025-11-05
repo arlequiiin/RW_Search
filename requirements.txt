@@ -1,0 +1,13 @@
+streamlit>=1.20
+langchain>=0.0.400
+chromadb>=0.3.31
+sentence-transformers>=2.2.2
+python-docx>=0.8.11
+pillow>=9.0.0
+tqdm>=4.64.0
+sqlalchemy>=1.4
+pydantic>=1.10
+ollama>=0.1.0      # если используешь ollama python client; имя может отличаться, проверяй pip package
+ctransformers>=0.4.3 # OPTIONAL: если будешь использовать ctransformers fallback
+transformers>=4.35.0 # optional
+faiss-cpu>=1.7.2  # optional if you experiment with FAISS locally
