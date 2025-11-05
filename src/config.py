@@ -7,14 +7,14 @@ IMAGES_DIR = os.path.join(DATA_DIR, "images")
 BACKUP_DIR = os.path.join(DATA_DIR, "backups")
 
 CHROMA_DIR = os.path.join(BASE_DIR, "chroma_db")
-METADATA_DB = os.path.join(DATA_DIR, "metadata.db")  # sqlite or JSON
+METADATA_DB = os.path.join(DATA_DIR, "metadata.db")
 
-EMBEDDING_MODEL_NAME = "intfloat/multilingual-e5-small"  # Лучшая для русского: 84% точность, быстрая
+EMBEDDING_MODEL_NAME = "intfloat/multilingual-e5-small"
 CHUNK_SIZE_TOKENS = 500
 CHUNK_OVERLAP_TOKENS = 50
-TOP_K = 5  # Увеличено для лучшего покрытия
+TOP_K = 5 
 
-LLM_MODEL_NAME = "llama3:8b"  # имя в Ollama (пример)
+LLM_MODEL_NAME = "llama3:8b"
 LLM_MAX_TOKENS = 512
 
 LOG_FILE = os.path.join(BASE_DIR, "logs", "app.log")

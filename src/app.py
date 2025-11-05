@@ -11,7 +11,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.rag_pipeline import create_rag_pipeline
-from src.docs_parser import extract_text
+from src.docs_parser import extract_text_with_filename, prepare_text_for_chunking
 from src.chunker import split_text
 from src.embeddings import EmbeddingModel
 from src.storage import get_chroma
@@ -126,15 +126,18 @@ def main():
                     file_path = f"data/docs/{uploaded_file.name}"
                     with open(file_path, "wb") as f:
                         f.write(uploaded_file.getbuffer())
-                    
+
                     with st.spinner("Обработка документа..."):
-                        # Извлечение текста
-                        text = extract_text(file_path)
-                        st.info(f"✅ Извлечено {len(text)} символов")
-                        
+                        # Извлечение текста с названием файла
+                        text, filename_without_ext = extract_text_with_filename(file_path)
+                        st.info(f"✅ Извлечено {len(text)} символов из документа: {filename_without_ext}")
+
+                        # Подготовка текста с названием документа
+                        text_with_header = prepare_text_for_chunking(text, filename_without_ext)
+
                         # Разбиение на чанки
                         chunks = split_text(
-                            text,
+                            text_with_header,
                             max_length=CHUNK_SIZE_TOKENS * 4,
                             overlap=CHUNK_OVERLAP_TOKENS * 4
                         )

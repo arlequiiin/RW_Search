@@ -10,7 +10,7 @@ from datetime import datetime
 # Добавляем корневую директорию в PATH
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.docs_parser import extract_text
+from src.docs_parser import extract_text_with_filename, prepare_text_for_chunking
 from src.chunker import split_text
 from src.embeddings import EmbeddingModel
 from src.storage import get_chroma
@@ -34,16 +34,19 @@ def ingest_document(file_path: str, active: bool = True, author: str = "unknown"
         print(f"❌ Файл не найден: {file_path}")
         return False
 
-    # 2. Извлечение текста
+    # 2. Извлечение текста с названием файла
     try:
-        text = extract_text(file_path)
-        print(f"✅ Извлечено {len(text)} символов")
+        text, filename_without_ext = extract_text_with_filename(file_path)
+        print(f"✅ Извлечено {len(text)} символов из документа: {filename_without_ext}")
     except Exception as e:
         print(f"❌ Ошибка при извлечении текста: {e}")
         return False
 
+    # 2.5. Подготовка текста с названием документа
+    text_with_header = prepare_text_for_chunking(text, filename_without_ext)
+
     # 3. Разбиение на чанки
-    chunks = split_text(text, max_length=CHUNK_SIZE_TOKENS * 4, overlap=CHUNK_OVERLAP_TOKENS * 4)
+    chunks = split_text(text_with_header, max_length=CHUNK_SIZE_TOKENS * 4, overlap=CHUNK_OVERLAP_TOKENS * 4)
     print(f"✅ Создано {len(chunks)} чанков")
 
     if not chunks:
