@@ -1,4 +1,79 @@
-Получается сделан пока только 4 пункт roadmap? Протестируем работоспособность? И объясни как пользоваться 
+# Как использовать проект
+
+## Быстрый старт
+
+### 1. Установка зависимостей
+```bash
+# Создание виртуального окружения
+python -m venv .venv
+
+# Активация виртуального окружения
+# Windows:
+.venv\Scripts\activate
+# Linux/Mac:
+source .venv/bin/activate
+
+# Установка зависимостей
+pip install -r requirements.txt
+```
+
+### 2. Запуск приложения
+
+#### Windows:
+```bash
+# Простой запуск (откроется в браузере автоматически)
+run_app.bat
+
+# Остановка приложения
+stop_app.bat
+```
+
+#### Linux/Mac:
+```bash
+# Простой запуск
+./run_app.sh
+
+# Перезапуск (если порт занят)
+./restart_app.sh
+```
+
+#### Ручной запуск:
+```bash
+streamlit run src/app.py --server.port 8501
+```
+
+### 3. Доступ к приложению
+После запуска откройте браузер и перейдите по адресу:
+```
+http://localhost:8501
+```
+
+## Решение проблем
+
+### Проблема: порт 8501 занят
+
+**Способ 1 (Windows):**
+```bash
+stop_app.bat
+run_app.bat
+```
+
+**Способ 2 (запуск на другом порту):**
+```bash
+streamlit run src/app.py --server.port 8502
+```
+
+**Способ 3 (найти и завершить процесс вручную):**
+```bash
+# Windows
+netstat -ano | findstr :8501
+taskkill /PID <PID> /F
+
+# Linux/Mac
+lsof -ti:8501 | xargs kill -9
+```
+
+---
 
 # Тест на конфигурации:
 EMBEDDING_MODEL_NAME = "intfloat/multilingual-e5-small"
