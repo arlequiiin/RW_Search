@@ -2,33 +2,44 @@
 
 ## Быстрый старт
 
-### 1. Установка зависимостей
+### 1. Установка зависимостей (на рабочем ПК в WSL)
 ```bash
 # Создание виртуального окружения
 python -m venv .venv
 
 # Активация виртуального окружения
-# Windows:
-.venv\Scripts\activate
-# Linux/Mac:
 source .venv/bin/activate
 
 # Установка зависимостей
 pip install -r requirements.txt
 ```
 
-### 2. Запуск приложения
+### 2. Настройка удаленного доступа через VSCode (5 минут)
 
-#### Windows:
+**На рабочем ПК (в WSL):**
 ```bash
-# Простой запуск (откроется в браузере автоматически)
-run_app.bat
-
-# Остановка приложения
-stop_app.bat
+# Убедитесь, что SSH сервер установлен
+sudo apt update
+sudo apt install openssh-server
+sudo service ssh start
 ```
 
-#### Linux/Mac:
+**На ноутбуке:**
+1. Установите расширение **Remote - SSH** в VSCode
+2. Нажмите `F1` → `Remote-SSH: Connect to Host` → `Add New SSH Host`
+3. Введите: `ssh ваш_пользователь@IP_рабочего_ПК`
+4. Подключитесь (введите пароль)
+5. VSCode автоматически пробросит порты!
+
+**Узнать IP рабочего ПК:**
+```bash
+# В WSL на рабочем ПК
+hostname -I
+```
+
+### 3. Запуск приложения
+
+**В WSL на рабочем ПК (или через VSCode Remote):**
 ```bash
 # Простой запуск
 ./run_app.sh
@@ -37,40 +48,44 @@ stop_app.bat
 ./restart_app.sh
 ```
 
-#### Ручной запуск:
+**Ручной запуск:**
 ```bash
 streamlit run src/app.py --server.port 8501
 ```
 
-### 3. Доступ к приложению
-После запуска откройте браузер и перейдите по адресу:
+### 4. Доступ к приложению
+
+**Если работаете через VSCode Remote SSH:**
 ```
-http://localhost:8501
+http://localhost:8501  # VSCode автоматически пробросит порт
+```
+
+**Если работаете напрямую:**
+```
+http://IP_РАБОЧЕГО_ПК:8501
 ```
 
 ## Решение проблем
 
 ### Проблема: порт 8501 занят
 
-**Способ 1 (Windows):**
+**Способ 1 (перезапуск):**
 ```bash
-stop_app.bat
-run_app.bat
+./restart_app.sh
 ```
 
-**Способ 2 (запуск на другом порту):**
+**Способ 2 (найти и завершить процесс):**
+```bash
+# Найти процесс
+lsof -ti:8501
+
+# Убить процесс
+lsof -ti:8501 | xargs kill -9
+```
+
+**Способ 3 (запуск на другом порту):**
 ```bash
 streamlit run src/app.py --server.port 8502
-```
-
-**Способ 3 (найти и завершить процесс вручную):**
-```bash
-# Windows
-netstat -ano | findstr :8501
-taskkill /PID <PID> /F
-
-# Linux/Mac
-lsof -ti:8501 | xargs kill -9
 ```
 
 ---
