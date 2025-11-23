@@ -8,7 +8,8 @@
       "Bash(git push)",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(ollama list:*)"
     ],
     "deny": [],
     "ask": []
