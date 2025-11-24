@@ -1,6 +1,3 @@
-"""
-Гибридный поиск: Embeddings (семантический) + BM25 (ключевые слова)
-"""
 from typing import List, Dict
 from rank_bm25 import BM25Okapi
 import numpy as np

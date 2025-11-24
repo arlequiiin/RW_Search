@@ -1,6 +1,3 @@
-#!/bin/bash
-# Перезапуск Streamlit приложения
-
 echo "Остановка Streamlit..."
 pkill -f "streamlit run"
 sleep 2

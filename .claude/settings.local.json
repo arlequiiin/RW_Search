@@ -9,7 +9,11 @@
       "Bash(netstat:*)",
       "Bash(findstr:*)",
       "Bash(tree:*)",
-      "Bash(ollama list:*)"
+      "Bash(ollama list:*)",
+      "Bash(source .venv/bin/activate)",
+      "Bash(pip install:*)",
+      "Bash(python generate_pdf.py:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

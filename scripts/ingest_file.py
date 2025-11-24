@@ -1,13 +1,8 @@
-#!/usr/bin/env python3
-"""
-Скрипт для загрузки документа в векторную базу
-"""
 import sys
 import os
 import uuid
 from datetime import datetime
 
-# Добавляем корневую директорию в PATH
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.docs_parser import extract_text_with_filename, prepare_text_for_chunking
@@ -18,23 +13,12 @@ from src.config import EMBEDDING_MODEL_NAME, CHUNK_SIZE_TOKENS, CHUNK_OVERLAP_TO
 
 
 def ingest_document(file_path: str, active: bool = True, author: str = "unknown", tags: str = ""):
-    """
-    Загрузка документа в векторную базу
-
-    Args:
-        file_path: Путь к файлу
-        active: Статус активности документа
-        author: Автор документа
-        tags: Теги через запятую
-    """
     print(f"\n📄 Обработка файла: {file_path}")
 
-    # 1. Проверка существования файла
     if not os.path.exists(file_path):
         print(f"❌ Файл не найден: {file_path}")
         return False
 
-    # 2. Извлечение текста с названием файла
     try:
         text, filename_without_ext = extract_text_with_filename(file_path)
         print(f"✅ Извлечено {len(text)} символов из документа: {filename_without_ext}")
@@ -42,10 +26,7 @@ def ingest_document(file_path: str, active: bool = True, author: str = "unknown"
         print(f"❌ Ошибка при извлечении текста: {e}")
         return False
 
-    # 2.5. Подготовка текста с названием документа
     text_with_header = prepare_text_for_chunking(text, filename_without_ext)
-
-    # 3. Разбиение на чанки
     chunks = split_text(text_with_header, max_length=CHUNK_SIZE_TOKENS * 4, overlap=CHUNK_OVERLAP_TOKENS * 4)
     print(f"✅ Создано {len(chunks)} чанков")
 
@@ -53,18 +34,15 @@ def ingest_document(file_path: str, active: bool = True, author: str = "unknown"
         print("⚠️  Документ пустой, пропускаем")
         return False
 
-    # 4. Создание эмбеддингов
     print("🔄 Создание эмбеддингов...")
     embedding_model = EmbeddingModel(EMBEDDING_MODEL_NAME)
     embeddings = embedding_model.encode(chunks)
     print(f"✅ Создано {len(embeddings)} эмбеддингов")
 
-    # 5. Подготовка метаданных
     doc_id = str(uuid.uuid4())
     filename = os.path.basename(file_path)
     created_at = datetime.now().isoformat()
 
-    # 6. Добавление в ChromaDB
     print("💾 Сохранение в векторную базу...")
     client, collection = get_chroma()
 
@@ -88,7 +66,6 @@ def ingest_document(file_path: str, active: bool = True, author: str = "unknown"
         }
         metadatas.append(metadata)
 
-    # Добавление в коллекцию
     collection.add(
         documents=chunks,
         embeddings=embeddings.tolist(),

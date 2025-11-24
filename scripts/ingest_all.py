@@ -1,7 +1,3 @@
-#!/usr/bin/env python3
-"""
-Скрипт для массовой загрузки всех документов из папки
-"""
 import sys
 import os
 from pathlib import Path
@@ -12,22 +8,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from scripts.ingest_file import ingest_document
 
 def ingest_all_documents(docs_dir: str = "data/docs"):
-    """
-    Загрузка всех документов из папки
-
-    Args:
-        docs_dir: Путь к папке с документами
-    """
     docs_path = Path(docs_dir)
     
     if not docs_path.exists():
         print(f"❌ Папка не найдена: {docs_dir}")
         return
 
-    # Поддерживаемые форматы
     supported_extensions = ['.docx', '.md', '.txt']
-    
-    # Получаем список файлов
     files = []
     for ext in supported_extensions:
         files.extend(docs_path.glob(f'*{ext}'))
@@ -58,7 +45,7 @@ def ingest_all_documents(docs_dir: str = "data/docs"):
                 errors.append(file_path.name)
                 
         except Exception as e:
-            print(f"❌ КРИТИЧЕСКАЯ ОШИБКА: {e}")
+            print(f"❌ Ошибка: {e}")
             error_count += 1
             errors.append(f"{file_path.name} ({str(e)})")
     

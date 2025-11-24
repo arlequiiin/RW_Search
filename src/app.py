@@ -1,13 +1,8 @@
-#!/usr/bin/env python3
-"""
-Streamlit Web UI для RAG-системы поиска по инструкциям
-"""
 import streamlit as st
 import os
 import sys
 from datetime import datetime
 
-# Добавляем корневую директорию в PATH
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.rag_pipeline import create_rag_pipeline
@@ -19,13 +14,11 @@ from src.config import EMBEDDING_MODEL_NAME, CHUNK_SIZE_TOKENS, CHUNK_OVERLAP_TO
 import uuid
 
 
-# Конфигурация страницы
 st.set_page_config(
     page_title="RAG Поиск по инструкциям",
     page_icon="📚",
     layout="wide"
 )
-
 
 @st.cache_resource
 def get_rag_pipeline():
@@ -61,7 +54,6 @@ def main():
     # Основные вкладки
     tab1, tab2, tab3 = st.tabs(["🔍 Поиск", "📄 Загрузка документов", "📊 База знаний"])
 
-    # === ВКЛАДКА 1: ПОИСК ===
     with tab1:
         st.header("Поиск по базе знаний")
         
@@ -102,7 +94,6 @@ def main():
                     except Exception as e:
                         st.error(f"❌ Ошибка при поиске: {e}")
 
-    # === ВКЛАДКА 2: ЗАГРУЗКА ДОКУМЕНТОВ ===
     with tab2:
         st.header("Загрузка новых документов")
         
@@ -191,7 +182,6 @@ def main():
                 except Exception as e:
                     st.error(f"❌ Ошибка при загрузке: {e}")
 
-    # === ВКЛАДКА 3: БАЗА ЗНАНИЙ ===
     with tab3:
         st.header("Управление базой знаний")
         

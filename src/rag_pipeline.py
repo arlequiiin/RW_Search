@@ -1,6 +1,4 @@
-"""
-RAG Pipeline - основная логика Retrieval-Augmented Generation
-"""
+
 from typing import List, Dict, Tuple
 from src.embeddings import EmbeddingModel
 from src.storage import get_chroma
@@ -10,22 +8,11 @@ from src.hybrid_search import HybridSearcher
 
 
 class RAGPipeline:
-    """
-    Полный пайплайн RAG: поиск релевантных документов + генерация ответа
-    """
-
     def __init__(
         self,
         embedding_model_name: str = EMBEDDING_MODEL_NAME,
         top_k: int = TOP_K
     ):
-        """
-        Инициализация RAG пайплайна
-
-        Args:
-            embedding_model_name: Имя модели для эмбеддингов
-            top_k: Количество документов для поиска
-        """
         print("Инициализация RAG pipeline...")
         self.embedding_model = EmbeddingModel(embedding_model_name)
         self.client, self.collection = get_chroma()
@@ -53,20 +40,20 @@ class RAGPipeline:
         if top_k is None:
             top_k = self.top_k
 
-        # Создаём эмбеддинг запроса
+        # эмбеддинг запроса
         query_embedding = self.embedding_model.encode([query])[0].tolist()
 
-        # Подготовка фильтра
+        # подготовка фильтра
         where_filter = {"active": True} if filter_active else None
 
-        # Поиск в ChromaDB
+        # поиск в ChromaDB
         results = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=top_k,
             where=where_filter if where_filter else {}
         )
 
-        # Форматирование результатов
+        # форматирование результатов
         documents = []
         if results['documents'] and len(results['documents']) > 0:
             for i in range(len(results['documents'][0])):
