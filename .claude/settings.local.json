@@ -14,7 +14,8 @@
       "Bash(pip install:*)",
       "Bash(python generate_pdf.py:*)",
       "Bash(ls:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []
