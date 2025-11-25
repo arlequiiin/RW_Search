@@ -164,7 +164,7 @@ class RAGPipeline:
         }
 
 
-# Удобная функция для создания пайплайна
+# создание пайплайна
 def create_rag_pipeline() -> RAGPipeline:
     """Создание и возврат RAG пайплайна"""
     return RAGPipeline()
