@@ -34,3 +34,10 @@ Thumbs.db
 # Temporary files
 *.tmp
 ~$*
+
+# Test files
+test_*.py
+test_*.md
+test_*.docx
+data/docs/test_*
+data/images/test_*

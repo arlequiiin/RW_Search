@@ -67,7 +67,7 @@ class RAGPipeline:
 
         return documents
 
-    def format_context(self, documents: List[Dict]) -> Tuple[str, List[Dict]]:
+    def format_context(self, documents: List[Dict]) -> Tuple[str, List[Dict], List[str]]:
         """
         Форматирование найденных документов в контекст для LLM
 
@@ -75,24 +75,31 @@ class RAGPipeline:
             documents: Список документов из поиска
 
         Returns:
-            Tuple (отформатированный контекст, источники)
+            Tuple (отформатированный контекст, источники, список путей к изображениям)
         """
         if not documents:
-            return "Контекст отсутствует.", []
+            return "Контекст отсутствует.", [], []
 
         context_parts = []
         sources = []
+        all_images = []
 
         for i, doc in enumerate(documents, 1):
             text = doc['text']
             metadata = doc.get('metadata', {})
+
+            # Извлекаем изображения из метаданных
+            images = metadata.get('images', [])
+            if images:
+                all_images.extend(images)
 
             # Формируем источник
             source_info = {
                 'index': i,
                 'filename': metadata.get('filename', 'Неизвестный документ'),
                 'doc_id': metadata.get('doc_id', ''),
-                'distance': doc.get('distance', 0.0)
+                'distance': doc.get('distance', 0.0),
+                'images': images
             }
             sources.append(source_info)
 
@@ -103,7 +110,7 @@ class RAGPipeline:
             context_parts.append(context_part)
 
         context = "\n---\n".join(context_parts)
-        return context, sources
+        return context, sources, all_images
 
     def query(self, user_query: str, top_k: int = None) -> Dict:
         """
@@ -132,7 +139,7 @@ class RAGPipeline:
         print(f"✅ Найдено документов: {len(documents)}")
 
         # 2. Форматирование контекста
-        context, sources = self.format_context(documents)
+        context, sources, images = self.format_context(documents)
 
         # 3. Генерация ответа с помощью LLM
         print("🤖 Генерация ответа...")
@@ -147,7 +154,8 @@ class RAGPipeline:
             'answer': answer,
             'context': context,
             'sources': sources,
-            'documents': documents
+            'documents': documents,
+            'images': images
         }
 
     def get_stats(self) -> Dict:

@@ -73,21 +73,51 @@ def main():
                         # Отображение ответа
                         st.markdown("### 💬 Ответ:")
                         st.success(result['answer'])
-                        
+
+                        # Отображение изображений из контекста
+                        if result.get('images'):
+                            st.markdown("### 🖼️ Связанные изображения:")
+                            # Отображаем изображения в колонках (по 2 в ряд)
+                            cols_per_row = 2
+                            for idx in range(0, len(result['images']), cols_per_row):
+                                cols = st.columns(cols_per_row)
+                                for col_idx, col in enumerate(cols):
+                                    img_idx = idx + col_idx
+                                    if img_idx < len(result['images']):
+                                        image_path = result['images'][img_idx]
+                                        with col:
+                                            try:
+                                                st.image(image_path, caption=f"Изображение {img_idx + 1}", use_container_width=True)
+                                            except Exception as e:
+                                                st.warning(f"⚠️ Не удалось загрузить изображение: {image_path}")
+
                         # Отображение источников
                         if result['sources']:
                             st.markdown("### 📚 Источники:")
                             for source in result['sources']:
+                                # Показываем наличие изображений в источнике
+                                has_images = len(source.get('images', [])) > 0
+                                images_indicator = " 🖼️" if has_images else ""
+
                                 with st.expander(
-                                    f"📄 {source['filename']} (релевантность: {1 - source['distance']:.2%})"
+                                    f"📄 {source['filename']}{images_indicator} (релевантность: {1 - source['distance']:.2%})"
                                 ):
                                     doc = result['documents'][source['index'] - 1]
                                     st.text(doc['text'])
-                                    
+
                                     # Метаданные
                                     metadata = doc.get('metadata', {})
                                     st.caption(f"Doc ID: {metadata.get('doc_id', 'N/A')}")
                                     st.caption(f"Чанк: {metadata.get('chunk_index', 0) + 1}/{metadata.get('total_chunks', 1)}")
+
+                                    # Показываем изображения конкретного источника
+                                    if source.get('images'):
+                                        st.markdown("**Изображения в этом источнике:**")
+                                        for img_path in source['images']:
+                                            try:
+                                                st.image(img_path, use_container_width=True)
+                                            except Exception as e:
+                                                st.caption(f"⚠️ Изображение: {img_path} (не удалось загрузить)")
                         else:
                             st.info("Источники не найдены")
                     
@@ -201,7 +231,8 @@ def main():
                                     'active': True,
                                     'author': author,
                                     'tags': ','.join(all_tags),
-                                    'created_at': created_at
+                                    'created_at': created_at,
+                                    'images': instruction.get('images', [])
                                 }
                                 metadatas.append(metadata)
 
