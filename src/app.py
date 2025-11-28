@@ -87,7 +87,7 @@ def main():
                                         image_path = result['images'][img_idx]
                                         with col:
                                             try:
-                                                st.image(image_path, caption=f"Изображение {img_idx + 1}", use_container_width=True)
+                                                st.image(image_path, caption=f"Изображение {img_idx + 1}", width='stretch')
                                             except Exception as e:
                                                 st.warning(f"⚠️ Не удалось загрузить изображение: {image_path}")
 
@@ -115,7 +115,7 @@ def main():
                                         st.markdown("**Изображения в этом источнике:**")
                                         for img_path in source['images']:
                                             try:
-                                                st.image(img_path, use_container_width=True)
+                                                st.image(img_path, width='stretch')
                                             except Exception as e:
                                                 st.caption(f"⚠️ Изображение: {img_path} (не удалось загрузить)")
                         else:
