@@ -18,12 +18,17 @@ class LLMClient:
         """Проверка доступности модели"""
         try:
             models = ollama.list()
-            available_models = [m['name'] for m in models.get('models', [])]
+            # Ollama возвращает словарь с ключом 'models', который содержит список моделей
+            # Каждая модель - это словарь с разными ключами в зависимости от версии
+            available_models = []
+            for m in models.get('models', []):
+                # Пытаемся получить имя модели из разных возможных ключей
+                model_name = m.get('name') or m.get('model') or str(m)
+                available_models.append(model_name)
+
             if self.model_name not in available_models:
-                raise ValueError(
-                    f"Модель {self.model_name} не найдена. "
-                    f"Доступные модели: {available_models}"
-                )
+                print(f"⚠️  Модель {self.model_name} не найдена в списке.")
+                print(f"   Доступные модели: {available_models}")
         except Exception as e:
             print(f"⚠️  Предупреждение: не удалось проверить модель: {e}")
 
