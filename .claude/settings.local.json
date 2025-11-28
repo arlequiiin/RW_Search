@@ -15,7 +15,8 @@
       "Bash(python generate_pdf.py:*)",
       "Bash(ls:*)",
       "Bash(chmod:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(python scripts/init_metadata_db.py:*)"
     ],
     "deny": [],
     "ask": []
