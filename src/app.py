@@ -232,7 +232,7 @@ def main():
                                     'author': author,
                                     'tags': ','.join(all_tags),
                                     'created_at': created_at,
-                                    'images': instruction.get('images', [])
+                                    'images': ','.join(instruction.get('images', []))
                                 }
                                 metadatas.append(metadata)
 
