@@ -89,7 +89,9 @@ class RAGPipeline:
             metadata = doc.get('metadata', {})
 
             # Извлекаем изображения из метаданных
-            images = metadata.get('images', [])
+            images_str = metadata.get('images', '')
+            # Преобразуем строку обратно в список
+            images = [img.strip() for img in images_str.split(',') if img.strip()] if images_str else []
             if images:
                 all_images.extend(images)
 

@@ -95,16 +95,18 @@ def init_metadata_database():
         ('1С', 'система'),
     ]
 
-    cursor.executemany(
-        'INSERT OR IGNORE INTO tags (name, category) VALUES (?, ?)',
-        default_tags
-    )
+    if default_tags:
+        cursor.executemany(
+            'INSERT OR IGNORE INTO tags (name, category) VALUES (?, ?)',
+            default_tags
+        )
 
     conn.commit()
     conn.close()
 
     print(f"База данных метаданных создана: {METADATA_DB}")
-    print(f"Добавлено {len(default_tags)} предустановленных тегов")
+    if default_tags:
+        print(f"Добавлено {len(default_tags)} предустановленных тегов")
 
 if __name__ == "__main__":
     init_metadata_database()
