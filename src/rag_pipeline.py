@@ -67,7 +67,7 @@ class RAGPipeline:
 
         return documents
 
-    def format_context(self, documents: List[Dict]) -> Tuple[str, List[Dict], List[str]]:
+    def format_context(self, documents: List[Dict]) -> Tuple[str, List[Dict], List[str], str]:
         """
         Форматирование найденных документов в контекст для LLM
 
@@ -75,33 +75,62 @@ class RAGPipeline:
             documents: Список документов из поиска
 
         Returns:
-            Tuple (отформатированный контекст, источники, список путей к изображениям)
+            Tuple (отформатированный контекст, источники, список путей к изображениям, instruction_id топ-1 инструкции)
         """
         if not documents:
-            return "Контекст отсутствует.", [], []
+            return "Контекст отсутствует.", [], [], None
 
         context_parts = []
         sources = []
         all_images = []
 
+        # Группируем документы по instruction_id и считаем средний score
+        from collections import defaultdict
+        instruction_scores = defaultdict(list)
+        instruction_docs = defaultdict(list)
+
+        for doc in documents:
+            metadata = doc.get('metadata', {})
+            instruction_id = metadata.get('instruction_id', metadata.get('doc_id', ''))
+            distance = doc.get('distance', 1.0)
+
+            instruction_scores[instruction_id].append(distance)
+            instruction_docs[instruction_id].append(doc)
+
+        # Находим instruction_id с наилучшим средним score (наименьший distance)
+        best_instruction_id = None
+        best_avg_distance = float('inf')
+
+        for instruction_id, distances in instruction_scores.items():
+            avg_distance = sum(distances) / len(distances)
+            if avg_distance < best_avg_distance:
+                best_avg_distance = avg_distance
+                best_instruction_id = instruction_id
+
         for i, doc in enumerate(documents, 1):
             text = doc['text']
             metadata = doc.get('metadata', {})
+            instruction_id = metadata.get('instruction_id', metadata.get('doc_id', ''))
 
             # Извлекаем изображения из метаданных
             images_str = metadata.get('images', '')
             # Преобразуем строку обратно в список
             images = [img.strip() for img in images_str.split(',') if img.strip()] if images_str else []
-            if images:
+
+            # Добавляем изображения ТОЛЬКО из топ-1 инструкции
+            if images and instruction_id == best_instruction_id:
                 all_images.extend(images)
 
             # Формируем источник
             source_info = {
                 'index': i,
                 'filename': metadata.get('filename', 'Неизвестный документ'),
+                'title': metadata.get('title', metadata.get('filename', 'Неизвестный документ')),
                 'doc_id': metadata.get('doc_id', ''),
+                'instruction_id': instruction_id,
                 'distance': doc.get('distance', 0.0),
-                'images': images
+                'images': images,
+                'is_best': instruction_id == best_instruction_id
             }
             sources.append(source_info)
 
@@ -112,7 +141,7 @@ class RAGPipeline:
             context_parts.append(context_part)
 
         context = "\n---\n".join(context_parts)
-        return context, sources, all_images
+        return context, sources, all_images, best_instruction_id
 
     def query(self, user_query: str, top_k: int = None) -> Dict:
         """
@@ -141,7 +170,7 @@ class RAGPipeline:
         print(f"✅ Найдено документов: {len(documents)}")
 
         # 2. Форматирование контекста
-        context, sources, images = self.format_context(documents)
+        context, sources, images, best_instruction_id = self.format_context(documents)
 
         # 3. Генерация ответа с помощью LLM
         print("🤖 Генерация ответа...")
@@ -152,12 +181,21 @@ class RAGPipeline:
 
         print("✅ Ответ готов")
 
+        # Получаем название топ-1 инструкции для отображения
+        best_instruction_title = None
+        for source in sources:
+            if source.get('is_best'):
+                best_instruction_title = source.get('title')
+                break
+
         return {
             'answer': answer,
             'context': context,
             'sources': sources,
             'documents': documents,
-            'images': images
+            'images': images,
+            'best_instruction_id': best_instruction_id,
+            'best_instruction_title': best_instruction_title
         }
 
     def get_stats(self) -> Dict:

@@ -20,7 +20,8 @@
       "Bash(python -c:*)",
       "Bash(python test_image_processing.py:*)",
       "Bash(test:*)",
-      "Bash(python test_metadata_fix.py:*)"
+      "Bash(python test_metadata_fix.py:*)",
+      "Bash(python test_image_logic.py:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import sys
+import re
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,6 +13,90 @@ from src.embeddings import EmbeddingModel
 from src.storage import get_chroma
 from src.metadata_manager import MetadataManager
 from src.config import EMBEDDING_MODEL_NAME, CHUNK_SIZE_TOKENS, CHUNK_OVERLAP_TOKENS
+
+
+def render_answer_with_images(answer_text: str, available_images: list):
+    """
+    Парсинг ответа LLM и отображение изображений в нужных местах
+
+    Args:
+        answer_text: Текст ответа от LLM
+        available_images: Список доступных путей к изображениям
+    """
+    # Паттерн для поиска плейсхолдеров [[image: путь]]
+    image_pattern = r'\[\[image:\s*([^\]]+)\]\]'
+
+    # Разбиваем текст на части по плейсхолдерам
+    parts = re.split(image_pattern, answer_text)
+
+    for i, part in enumerate(parts):
+        if i % 2 == 0:
+            # Это текстовая часть
+            if part.strip():
+                st.markdown(part.strip())
+        else:
+            # Это путь к изображению
+            image_path = part.strip()
+            # Проверяем, есть ли это изображение в доступных
+            if image_path in available_images or any(img.endswith(image_path) for img in available_images):
+                # Находим полный путь
+                full_path = None
+                for img in available_images:
+                    if img == image_path or img.endswith(image_path):
+                        full_path = img
+                        break
+
+                if full_path:
+                    try:
+                        st.image(full_path, use_column_width=True)
+                    except Exception as e:
+                        st.caption(f"⚠️ Не удалось загрузить изображение: {image_path}")
+            else:
+                # Изображение не найдено в доступных - показываем плейсхолдер
+                st.caption(f"🖼️ Изображение: {image_path}")
+
+
+def display_answer_with_inline_images(answer: str, images: list, instruction_title: str = None):
+    """
+    Отображение ответа с встроенными изображениями
+
+    Args:
+        answer: Текст ответа от LLM
+        images: Список путей к изображениям
+        instruction_title: Название топ-1 инструкции
+    """
+    # Проверяем наличие плейсхолдеров изображений в ответе
+    has_image_placeholders = bool(re.search(r'\[\[image:', answer))
+
+    if has_image_placeholders:
+        # Есть плейсхолдеры - рендерим с изображениями в тексте
+        if instruction_title:
+            st.markdown(f"**Источник изображений:** {instruction_title}")
+        render_answer_with_images(answer, images)
+    else:
+        # Нет плейсхолдеров - показываем текст и изображения отдельно
+        st.markdown(answer)
+
+        if images:
+            st.markdown("---")
+            if instruction_title:
+                st.markdown(f"### 🖼️ Изображения из инструкции: **{instruction_title}**")
+            else:
+                st.markdown("### 🖼️ Связанные изображения:")
+
+            # Отображаем изображения в колонках (по 2 в ряд)
+            cols_per_row = 2
+            for idx in range(0, len(images), cols_per_row):
+                cols = st.columns(cols_per_row)
+                for col_idx, col in enumerate(cols):
+                    img_idx = idx + col_idx
+                    if img_idx < len(images):
+                        image_path = images[img_idx]
+                        with col:
+                            try:
+                                st.image(image_path, caption=f"Изображение {img_idx + 1}", width='stretch')
+                            except Exception as e:
+                                st.warning(f"⚠️ Не удалось загрузить изображение: {image_path}")
 
 
 st.set_page_config(
@@ -69,27 +154,16 @@ def main():
                 with st.spinner("Поиск и генерация ответа..."):
                     try:
                         result = rag.query(query, top_k=top_k)
-                        
-                        # Отображение ответа
-                        st.markdown("### 💬 Ответ:")
-                        st.success(result['answer'])
 
-                        # Отображение изображений из контекста
-                        if result.get('images'):
-                            st.markdown("### 🖼️ Связанные изображения:")
-                            # Отображаем изображения в колонках (по 2 в ряд)
-                            cols_per_row = 2
-                            for idx in range(0, len(result['images']), cols_per_row):
-                                cols = st.columns(cols_per_row)
-                                for col_idx, col in enumerate(cols):
-                                    img_idx = idx + col_idx
-                                    if img_idx < len(result['images']):
-                                        image_path = result['images'][img_idx]
-                                        with col:
-                                            try:
-                                                st.image(image_path, caption=f"Изображение {img_idx + 1}", width='stretch')
-                                            except Exception as e:
-                                                st.warning(f"⚠️ Не удалось загрузить изображение: {image_path}")
+                        # Отображение ответа с изображениями
+                        st.markdown("### 💬 Ответ:")
+
+                        # Используем новую функцию для отображения ответа с встроенными изображениями
+                        display_answer_with_inline_images(
+                            answer=result['answer'],
+                            images=result.get('images', []),
+                            instruction_title=result.get('best_instruction_title')
+                        )
 
                         # Отображение источников
                         if result['sources']:
@@ -99,14 +173,19 @@ def main():
                                 has_images = len(source.get('images', [])) > 0
                                 images_indicator = " 🖼️" if has_images else ""
 
+                                # Отмечаем топ-1 инструкцию
+                                is_best = source.get('is_best', False)
+                                best_indicator = " ⭐ (основной источник)" if is_best else ""
+
                                 with st.expander(
-                                    f"📄 {source['filename']}{images_indicator} (релевантность: {1 - source['distance']:.2%})"
+                                    f"📄 {source['filename']}{images_indicator}{best_indicator} (релевантность: {1 - source['distance']:.2%})"
                                 ):
                                     doc = result['documents'][source['index'] - 1]
                                     st.text(doc['text'])
 
                                     # Метаданные
                                     metadata = doc.get('metadata', {})
+                                    st.caption(f"Название: {source.get('title', 'N/A')}")
                                     st.caption(f"Doc ID: {metadata.get('doc_id', 'N/A')}")
                                     st.caption(f"Чанк: {metadata.get('chunk_index', 0) + 1}/{metadata.get('total_chunks', 1)}")
 
