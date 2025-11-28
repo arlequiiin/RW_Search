@@ -19,7 +19,8 @@
       "Bash(python scripts/init_metadata_db.py:*)",
       "Bash(python -c:*)",
       "Bash(python test_image_processing.py:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(python test_metadata_fix.py:*)"
     ],
     "deny": [],
     "ask": []

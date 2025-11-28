@@ -81,7 +81,9 @@ class MetadataManager:
 
         except Exception as e:
             conn.rollback()
+            import traceback
             print(f"Ошибка при добавлении инструкции: {e}")
+            print(f"Traceback: {traceback.format_exc()}")
             return False
 
         finally:
@@ -115,10 +117,20 @@ class MetadataManager:
         self,
         cursor: sqlite3.Cursor,
         instruction_id: str,
-        images: List[Dict]
+        images: List
     ):
         """Добавление изображений к инструкции"""
-        for img in images:
+        for idx, img in enumerate(images):
+            # Поддерживаем оба формата: строки и словари
+            if isinstance(img, str):
+                image_path = img
+                image_index = idx
+                placeholder = f"[[image: {img}]]"
+            else:
+                image_path = img.get('path')
+                image_index = img.get('index', idx)
+                placeholder = img.get('placeholder', f"[[image: {img.get('path')}]]")
+
             cursor.execute('''
                 INSERT INTO instruction_images (
                     instruction_id, image_path, image_index, placeholder
@@ -126,9 +138,9 @@ class MetadataManager:
                 VALUES (?, ?, ?, ?)
             ''', (
                 instruction_id,
-                img.get('path'),
-                img.get('index'),
-                img.get('placeholder')
+                image_path,
+                image_index,
+                placeholder
             ))
 
     def get_instruction(self, instruction_id: str) -> Optional[Dict]:
