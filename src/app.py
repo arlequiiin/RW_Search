@@ -336,11 +336,25 @@ def main():
                                 st.error("Ошибка")
 
                     if st.button("🗑️ Удалить", key=f"delete_{inst['id']}", type="secondary"):
-                        if metadata_manager.delete_instruction(inst['id']):
-                            st.success("Удалена")
-                            st.rerun()
-                        else:
-                            st.error("Ошибка при удалении")
+                        try:
+                            # Удаляем из метаданных SQLite
+                            if metadata_manager.delete_instruction(inst['id']):
+                                # Удаляем чанки из ChromaDB
+                                client, collection = get_chroma()
+                                # Получаем все чанки этой инструкции
+                                results = collection.get(
+                                    where={"instruction_id": inst['id']}
+                                )
+                                if results and results['ids']:
+                                    collection.delete(ids=results['ids'])
+                                    st.success(f"✅ Удалена инструкция и {len(results['ids'])} чанков")
+                                else:
+                                    st.success("✅ Удалена инструкция (чанки не найдены)")
+                                st.rerun()
+                            else:
+                                st.error("❌ Ошибка при удалении метаданных")
+                        except Exception as e:
+                            st.error(f"❌ Ошибка при удалении: {e}")
 
         st.markdown("---")
 
@@ -348,14 +362,21 @@ def main():
         with st.expander("⚠️ Опасная зона", expanded=False):
             st.warning("Эти действия необратимы!")
 
-            if st.button("🗑️ Очистить всю базу ChromaDB", type="secondary"):
+            if st.button("🗑️ Очистить всю базу (ChromaDB + метаданные)", type="secondary"):
                 try:
+                    # Очищаем ChromaDB
                     client, collection = get_chroma()
                     client.delete_collection("documents")
-                    st.success("База ChromaDB очищена")
+
+                    # Очищаем метаданные SQLite
+                    metadata_manager = MetadataManager()
+                    metadata_manager.clear_all_data()
+
+                    st.success("✅ База данных полностью очищена (ChromaDB + метаданные)")
                     st.cache_resource.clear()
+                    st.rerun()
                 except Exception as e:
-                    st.error(f"Ошибка: {e}")
+                    st.error(f"❌ Ошибка при очистке: {e}")
 
 
 if __name__ == "__main__":

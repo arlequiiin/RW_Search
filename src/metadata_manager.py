@@ -312,3 +312,33 @@ class MetadataManager:
             'total_instructions': active_count + inactive_count,
             'total_tags': tags_count
         }
+
+    def clear_all_data(self) -> bool:
+        """
+        Полная очистка всех данных из базы метаданных
+        ВНИМАНИЕ: Это действие необратимо!
+
+        Returns:
+            bool: True если успешно, False при ошибке
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        try:
+            # Удаляем все данные из таблиц (порядок важен из-за внешних ключей)
+            cursor.execute('DELETE FROM instruction_images')
+            cursor.execute('DELETE FROM instruction_tags')
+            cursor.execute('DELETE FROM instruction_history')
+            cursor.execute('DELETE FROM instructions')
+            # Не удаляем теги, чтобы они остались доступны для новых инструкций
+            # cursor.execute('DELETE FROM tags')
+
+            conn.commit()
+            print("✅ Все данные успешно удалены из базы метаданных")
+            return True
+        except Exception as e:
+            conn.rollback()
+            print(f"❌ Ошибка при очистке базы метаданных: {e}")
+            return False
+        finally:
+            conn.close()
