@@ -20,17 +20,17 @@ def remove_preset_tags():
     conn = sqlite3.connect(METADATA_DB)
     cursor = conn.cursor()
 
-    # Удаляем предустановленные теги
-    preset_tags = ['ЕГАИС', '1С']
-
-    for tag in preset_tags:
-        cursor.execute('DELETE FROM tags WHERE name = ?', (tag,))
-        print(f"Удалён тег: {tag}")
+    # Удаляем ВСЕ теги, которые не связаны с инструкциями
+    cursor.execute('''
+        DELETE FROM tags
+        WHERE id NOT IN (SELECT DISTINCT tag_id FROM instruction_tags)
+    ''')
+    deleted_count = cursor.rowcount
 
     conn.commit()
     conn.close()
 
-    print("Предустановленные теги удалены")
+    print(f"Удалено неиспользуемых тегов: {deleted_count}")
 
 if __name__ == "__main__":
     remove_preset_tags()
