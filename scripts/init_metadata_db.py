@@ -93,6 +93,7 @@ def init_metadata_database():
     default_tags = [
         ('ЕГАИС', 'система'),
         ('1С', 'система'),
+        ('SQL', 'система'),
     ]
 
     if default_tags:
